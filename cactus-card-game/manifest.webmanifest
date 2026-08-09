@@ -1,0 +1,15 @@
+{
+  "name": "Cactus — the card game",
+  "short_name": "Cactus",
+  "description": "A fan-made digital version of the Cactus card game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b2415",
+  "theme_color": "#0f3d1c",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
