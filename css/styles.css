@@ -211,10 +211,16 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .opp__cards { font-size: 11.5px; opacity: .7; display: flex; align-items: center; gap: 3px; }
 .opp__cards b { font-weight: 800; opacity: 1; }
 
-.pips { display: inline-flex; flex-wrap: wrap; gap: 2px; align-items: center; }
-.pip { width: 9px; height: 9px; background: var(--gold); transform: rotate(45deg); border-radius: 2px; }
-.pips--big .pip { width: 12px; height: 12px; }
-.pips__more { font-size: 11px; font-weight: 800; color: var(--gold); margin-left: 2px; }
+/* Points read as a number — a row of diamonds stopped scanning past four. */
+.score { display: inline-flex; align-items: baseline; gap: 2px; color: var(--gold); }
+.score b { font-size: 15px; font-weight: 900; line-height: 1; }
+.score i {
+  font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .5px;
+  text-transform: uppercase; opacity: .7;
+}
+.score--big b { font-size: 22px; }
+.score--big i { font-size: 10.5px; }
+.score.is-zero { color: rgba(251,248,240,.4); }
 
 /* board */
 
@@ -404,6 +410,55 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   80% { opacity: 1 }
   100% { transform: scale(.95) translateY(-16px); opacity: 0 }
 }
+
+/* ---------------------------------------------------------- leaderboard - */
+
+.board { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.brow {
+  display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+  border-radius: 12px; background: rgba(255,255,255,.07);
+  border: 2px solid transparent;
+}
+.brow.is-me { border-color: var(--charlie); background: rgba(60,180,75,.16); }
+.brow.is-won { border-color: var(--gold); background: rgba(255,207,63,.16); }
+.brow__rank {
+  width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%;
+  background: rgba(255,255,255,.12); display: grid; place-items: center;
+  font-size: 12px; font-weight: 900; opacity: .8;
+}
+.brow:first-child .brow__rank { background: var(--gold); color: #3a2a00; opacity: 1; }
+.brow__name { flex: 1 1 auto; font-weight: 800; font-size: 15px; }
+.brow__bot {
+  font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: .6px;
+  text-transform: uppercase; opacity: .45; margin-left: 5px;
+}
+.brow__wins { font-size: 11.5px; font-weight: 700; opacity: .6; white-space: nowrap; }
+.brow__pts {
+  font-size: 20px; font-weight: 900; color: var(--gold); min-width: 26px; text-align: right;
+}
+
+/* --------------------------------------------------------------- toss --- */
+
+.toss {
+  position: absolute; inset: 0; z-index: 55; display: grid; place-items: center;
+  background: rgba(4,14,8,.66); backdrop-filter: blur(2px); pointer-events: none;
+  animation: fade .18s ease;
+}
+.toss__box {
+  text-align: center; padding: 22px 30px; border-radius: 18px;
+  background: var(--night-2); border: 3px solid rgba(255,255,255,.16);
+  box-shadow: 0 14px 40px rgba(0,0,0,.55); min-width: 210px;
+}
+.toss__label {
+  display: block; font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase;
+  opacity: .55; font-weight: 800; margin-bottom: 8px;
+}
+.toss__name { display: block; font-size: 27px; font-weight: 900; letter-spacing: .5px; }
+.toss__box.is-settled {
+  border-color: var(--gold); animation: tossland .32s cubic-bezier(.2,1.5,.4,1);
+}
+.toss__box.is-settled .toss__name { color: var(--gold); }
+@keyframes tossland { from { transform: scale(.86) } to { transform: scale(1) } }
 
 /* -------------------------------------------------------------- sheet --- */
 

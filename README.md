@@ -57,6 +57,7 @@ The full rulebook, as printed in the box:
 
 - **Table size** — 2–6 seats, set by the host and adjustable right up until the
   deal. Anyone who has not turned up is a bot.
+- **Who starts** — tossed for, not given to the dealer.
 - **Winning** — 2–3 players: 10 points. 4–5: 6 points. 6: 5 points.
 - **Setup** — 5 cards each from the 90-card playing deck; 30 point cards sit aside.
 - **Your turn** — play as many action cards as you like, or none.
@@ -69,8 +70,11 @@ The full rulebook, as printed in the box:
 - **STOP** — any player, any time, cancels any action card. STOPs chain: an odd
   number of STOPs kills the action, an even number lets it through. A stopped
   FREE POINT or STEAL A POINT costs the point *and leaves it that player's turn*.
-- **Zero cards at the start of your turn** — draw 3, turn over.
+- **Running out of cards** — emptying your hand ends your turn on the spot;
+  you pick up 3 at the start of your next turn, and that turn ends too.
 - **Empty draw pile** — the discard pile is shuffled back in.
+- **Leaderboard** — 🏆 in the top bar. Points for the current round, plus rounds
+  won at this table once anyone has won one.
 
 ### One deliberate adaptation
 

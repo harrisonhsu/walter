@@ -157,17 +157,35 @@ export function resetToLobby(room) {
   room.status = 'lobby';
   room.game = null;
   room.nextTickAt = 0;
+  room.tallied = false;
 }
 
 export function startGame(room) {
   if (room.status !== 'lobby') throw fail('STARTED', 'That game has already started.');
-  const players = room.seats.map((s) => ({ name: s.name, isHuman: s.kind === 'human' }));
+  const players = room.seats.map((s) => ({
+    name: s.name,
+    isHuman: s.kind === 'human',
+    wins: s.wins || 0, // a seat keeps its record across rounds at this table
+  }));
   const game = new Game({
     players,
     speed: SPEED[room.speedKey] || SPEED.normal,
     paced: false,
   });
   room.status = 'playing';
+  settle(room, game);
+}
+
+/**
+ * Store the game back on the room, tallying the result the first time we see
+ * it finished so a seat's record survives into the next round.
+ */
+function settle(room, game) {
+  if (game.phase === PHASE.GAME_OVER && game.winner && !room.tallied) {
+    room.tallied = true;
+    const seat = room.seats[game.winner.id];
+    if (seat) seat.wins = game.winner.wins || (seat.wins || 0) + 1;
+  }
   room.game = game.snapshot();
   scheduleTick(room, game);
 }
@@ -210,8 +228,7 @@ export function tick(room, seen = {}) {
   }
 
   game.autoStep(force);
-  room.game = game.snapshot();
-  scheduleTick(room, game);
+  settle(room, game);
   return 'changed';
 }
 
@@ -248,8 +265,7 @@ export function applyAction(room, seat, msg) {
   if (game.phase === PHASE.CHOOSE_TARGET) throw fail('BAD_TARGET', 'That card needs a target.');
   if (!ok) throw fail('ILLEGAL', 'You cannot do that right now.');
 
-  room.game = game.snapshot();
-  scheduleTick(room, game);
+  settle(room, game);
   return true;
 }
 
@@ -300,12 +316,14 @@ function gameView(snap, seat) {
     discardTop: g.discard[g.discard.length - 1] || null,
     phase: g.phase,
     current: g.current,
+    firstPlayer: g.firstPlayer,
     winner: g.winner ? g.winner.id : null,
     players: g.players.map((p) => ({
       id: p.id,
       name: p.name,
       isHuman: p.isHuman,
       points: p.points,
+      wins: p.wins || 0,
       handCount: p.hand.length,
       hand: p.id === me ? p.hand : null,
     })),

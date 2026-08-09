@@ -10,7 +10,8 @@ const $ = (id) => document.getElementById(id);
 const el = {
   setup: $('setup'), lobby: $('lobby'), table: $('table'),
   modal: $('modal'), flash: $('flash'),
-  rules: $('rules'), opponents: $('opponents'), hand: $('hand'),
+  rules: $('rules'), board: $('board'), toss: $('toss'),
+  opponents: $('opponents'), hand: $('hand'),
   controls: $('controls'), prompt: $('prompt'), log: $('log'),
   drawArt: $('draw-art'), drawCount: $('draw-count'), discardArt: $('discard-art'),
   pointArt: $('point-art'), pointCount: $('point-count'), goalNum: $('goal-num'),
@@ -62,13 +63,10 @@ function backHTML() {
   return `<div class="card card--back">${cardBackSVG()}</div>`;
 }
 
-function pipsHTML(n, big) {
-  const shown = Math.min(n, 6);
-  let h = `<span class="pips${big ? ' pips--big' : ''}">`;
-  for (let i = 0; i < shown; i++) h += '<i class="pip"></i>';
-  if (n > shown) h += `<span class="pips__more">+${n - shown}</span>`;
-  if (n === 0) h += '<span class="pips__more" style="opacity:.35">0</span>';
-  return h + '</span>';
+/** Points as a plain count — a row of diamonds stopped being readable past 4. */
+function scoreHTML(n, big) {
+  return `<span class="score${big ? ' score--big' : ''}${n ? '' : ' is-zero'}">
+    <b>${n}</b><i>${n === 1 ? 'pt' : 'pts'}</i></span>`;
 }
 
 // --------------------------------------------------------------- rendering
@@ -88,6 +86,8 @@ export function attach(g, restart) {
   g.onChange = render;
   render(g);
   g.changed();
+  // Only at the top of a game — a latecomer taking a seat has missed the toss.
+  if (g.firstPlayer !== null && g.firstPlayer !== undefined && g.log.length <= 2) playToss(g);
 }
 
 export function render(g) {
@@ -98,10 +98,11 @@ export function render(g) {
   renderPiles(g);
   renderLog(g);
 
-  el.mePips.innerHTML = pipsHTML(me.points, true);
+  el.mePips.innerHTML = scoreHTML(me.points, true);
   renderHand(g, me);
   renderControls(g, me);
   renderModal(g, me);
+  renderBoard(g);
   renderFlash(g);
 }
 
@@ -118,7 +119,7 @@ function renderOpponents(g, me) {
         <span class="opp__name">${p.away ? '<i class="dot"></i>' : ''}${esc(p.name)}</span>
         <span class="opp__row">
           <span class="opp__cards">🂠 <b>${p.hand.length}</b></span>
-          ${pipsHTML(p.points)}
+          ${scoreHTML(p.points)}
         </span>
       </div>`;
     })
@@ -267,7 +268,7 @@ function playerRow(p, opts = {}) {
   return `<button data-pick="${p.id}" ${opts.disabled ? 'disabled' : ''}
       class="${opts.picked ? 'is-picked' : ''}">
     <span>${esc(p.name)}</span>
-    <span class="meta">🂠 ${p.hand.length} ${pipsHTML(p.points)}</span>
+    <span class="meta">🂠 ${p.hand.length} ${scoreHTML(p.points)}</span>
   </button>`;
 }
 
@@ -361,6 +362,67 @@ function gameOverModal(g, me) {
         <span class="meta">${p.points} pt${p.points === 1 ? '' : 's'}</span></button>`
     ).join('')}</div>
     ${rematchHTML(g)}`);
+}
+
+// ------------------------------------------------------------ leaderboard
+
+function renderBoard(g) {
+  if (el.board.classList.contains('hidden')) return;
+  const me = g.human();
+  const anyWins = g.players.some((p) => p.wins > 0);
+  $('board-list').innerHTML = g.standings().map((p, i) => {
+    const cls = ['brow'];
+    if (p.id === me.id) cls.push('is-me');
+    if (g.winner === p) cls.push('is-won');
+    return `<li class="${cls.join(' ')}">
+      <span class="brow__rank">${i + 1}</span>
+      <span class="brow__name">${esc(p.name)}${p.isHuman ? '' : ' <i class="brow__bot">bot</i>'}</span>
+      ${anyWins ? `<span class="brow__wins">${p.wins} won</span>` : ''}
+      <span class="brow__pts">${p.points}</span>
+    </li>`;
+  }).join('');
+  $('board-note').textContent = anyWins
+    ? `First to ${g.goal} points takes the round. "Won" counts rounds at this table.`
+    : `First to ${g.goal} points wins.`;
+}
+
+/**
+ * Ceremony for the opening toss, so nobody wonders why they are not first.
+ *
+ * Driven by a deadline rather than a tick count: a backgrounded tab clamps
+ * timers to about a second each, which would turn a fixed number of ticks into
+ * a fifteen-second wait. This just shows fewer names instead.
+ */
+let tossTimer = null;
+
+function playToss(g) {
+  const winner = g.players[g.firstPlayer];
+  if (!winner) return;
+  const names = g.players.map((p) => p.name);
+  clearTimeout(tossTimer);
+  el.toss.classList.remove('hidden');
+
+  const show = (name, settled) => {
+    el.toss.innerHTML = `<div class="toss__box${settled ? ' is-settled' : ''}">
+      <span class="toss__label">${settled ? 'goes first' : 'tossing for first…'}</span>
+      <span class="toss__name">${esc(name)}</span></div>`;
+  };
+
+  const until = Date.now() + 1250;
+  let i = Math.floor(Math.random() * names.length);
+  const step = () => {
+    if (Date.now() >= until) {
+      show(winner.name, true);
+      tossTimer = setTimeout(() => {
+        el.toss.classList.add('hidden');
+        el.toss.innerHTML = '';
+      }, 1100);
+      return;
+    }
+    show(names[i++ % names.length], false);
+    tossTimer = setTimeout(step, 90);
+  };
+  step();
 }
 
 /** Drop a one-off banner over the table — used for network hiccups. */
@@ -476,7 +538,10 @@ const SCREENS = { setup: el.setup, lobby: el.lobby, table: el.table };
 
 export function showScreen(name) {
   for (const [key, node] of Object.entries(SCREENS)) node.classList.toggle('hidden', key !== name);
-  if (name !== 'table') closeModal();
+  if (name !== 'table') {
+    closeModal();
+    el.board.classList.add('hidden');
+  }
 }
 
 export function showError(id, message) {
@@ -553,6 +618,12 @@ export function setupChrome({ onStart, onJoin, onQuit }) {
   $('rules-btn').addEventListener('click', openRules);
   $('setup-rules-btn').addEventListener('click', openRules);
   $('rules-close').addEventListener('click', () => el.rules.classList.add('hidden'));
+
+  $('board-btn').addEventListener('click', () => {
+    el.board.classList.remove('hidden');
+    if (game) renderBoard(game);
+  });
+  $('board-close').addEventListener('click', () => el.board.classList.add('hidden'));
 
   $('quit-btn').addEventListener('click', onQuit);
 

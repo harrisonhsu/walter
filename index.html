@@ -124,6 +124,7 @@
         <span class="topbar__goal-lbl">to win</span>
       </div>
       <span class="topbar__room hidden" id="room-tag"></span>
+      <button id="board-btn" class="icon-btn" aria-label="Leaderboard">🏆</button>
       <button id="rules-btn" class="icon-btn" aria-label="Rules">?</button>
     </header>
 
@@ -161,7 +162,20 @@
   </section>
 
   <div id="flash" class="flash" aria-live="assertive"></div>
+  <div id="toss" class="toss hidden" aria-hidden="true"></div>
   <div id="modal" class="modal hidden"></div>
+
+  <!-- ------------------------------------------------- leaderboard ---- -->
+  <section id="board" class="sheet hidden" aria-label="Leaderboard">
+    <div class="sheet__bar">
+      <h2>Leaderboard</h2>
+      <button id="board-close" class="icon-btn" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet__body">
+      <ol class="board" id="board-list"></ol>
+      <p class="field__hint" id="board-note"></p>
+    </div>
+  </section>
 
   <!-- ------------------------------------------------------- rules ---- -->
   <section id="rules" class="sheet hidden" aria-label="Rules">
@@ -215,9 +229,11 @@
 
       <h3>Other rules</h3>
       <ul>
-        <li>Starting your turn with zero cards? Draw 3 and end your turn immediately.</li>
+        <li><b>Who starts</b> — the first turn is tossed for, not given to whoever dealt.</li>
+        <li><b>Running out of cards</b> — the moment your hand is empty your turn is over.
+          You pick up <b>3</b> at the start of your next turn, and that turn ends there too.</li>
         <li>If the draw pile runs out, the discard pile is shuffled to make a new one.</li>
-        <li>Points are always visible to everyone.</li>
+        <li>Points are always visible to everyone — tap 🏆 for the full standings.</li>
       </ul>
       <p class="credit">Original game designed by Ryan Wallace — thecactuscardgame.com. This is an unofficial fan implementation.</p>
     </div>

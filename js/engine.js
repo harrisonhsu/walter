@@ -42,6 +42,7 @@ export class Game {
       isHuman: !!p.isHuman,
       hand: [],
       points: 0,
+      wins: p.wins || 0, // carried between games at the same table
     }));
     this.goal = goalForPlayers(this.players.length);
     this.pointPile = POINT_PILE_SIZE;
@@ -59,9 +60,12 @@ export class Game {
       for (const p of this.players) p.hand.push(this.deck.pop());
     }
 
-    this.current = 0;
+    // Nobody deals themselves the first turn — toss for it.
+    this.current = Math.floor(Math.random() * this.players.length);
+    this.firstPlayer = this.current;
     this.phase = PHASE.TURN;
     this.say(`Goal: first to ${this.goal} point${this.goal === 1 ? '' : 's'}.`, 'sys');
+    this.say(`${this.cur().name} won the toss and goes first.`, 'sys');
     this.beginTurn();
   }
 
@@ -74,8 +78,9 @@ export class Game {
       goal: this.goal,
       pointPile: this.pointPile,
       players: this.players.map((p) => ({
-        id: p.id, name: p.name, isHuman: p.isHuman, hand: p.hand, points: p.points,
+        id: p.id, name: p.name, isHuman: p.isHuman, hand: p.hand, points: p.points, wins: p.wins || 0,
       })),
+      firstPlayer: this.firstPlayer,
       deck: this.deck,
       discard: this.discard,
       log: this.log,
@@ -123,6 +128,13 @@ export class Game {
     if (priv) { entry.alt = priv.alt; entry.only = priv.only; }
     this.log.push(entry);
     if (this.log.length > 120) this.log.shift();
+  }
+
+  /** Ranked table: points, then games won, then name. */
+  standings() {
+    return [...this.players].sort(
+      (a, b) => b.points - a.points || (b.wins || 0) - (a.wins || 0) || a.name.localeCompare(b.name)
+    );
   }
 
   /** The log as the seat we are looking from should read it. */
@@ -273,10 +285,16 @@ export class Game {
 
   checkWin(player) {
     if (player.points >= this.goal && !this.winner) {
-      this.winner = player;
-      this.phase = PHASE.GAME_OVER;
-      this.say(`${player.name} wins with ${player.points} points!`, 'win');
+      this.win(player, `${player.name} wins with ${player.points} points!`);
     }
+  }
+
+  /** Only ever runs once per game, so it is safe to tally the win here. */
+  win(player, message) {
+    this.winner = player;
+    player.wins = (player.wins || 0) + 1;
+    this.phase = PHASE.GAME_OVER;
+    this.say(message, 'win');
   }
 
   // ------------------------------------------------------------------ turns
@@ -298,9 +316,7 @@ export class Game {
       this.emptyTurns = drawn.length ? 0 : (this.emptyTurns || 0) + 1;
       if (this.emptyTurns > this.players.length) {
         const best = [...this.players].sort((a, b) => b.points - a.points)[0];
-        this.winner = best;
-        this.phase = PHASE.GAME_OVER;
-        this.say(`No cards left anywhere — ${best.name} wins on points.`, 'win');
+        this.win(best, `No cards left anywhere — ${best.name} wins on points.`);
         return;
       }
       this.endTurn();
@@ -314,6 +330,21 @@ export class Game {
     this.pending = null;
     this.current = (this.current + 1) % this.players.length;
     this.beginTurn();
+  }
+
+  /**
+   * Emptying your hand ends your turn on the spot — there is nothing left to
+   * play and drawing a single card to end would rob you of the pick-up. You
+   * come back next turn to draw 3 (see beginTurn).
+   * Returns true if the turn was ended.
+   */
+  checkOutOfCards() {
+    if (this.phase !== PHASE.TURN) return false;
+    const p = this.cur();
+    if (p.hand.length) return false;
+    this.say(`${p.name} is out of cards — they pick up 3 next turn.`, 'sys');
+    this.endTurn();
+    return true;
   }
 
   /** Voluntarily end the turn by drawing a card. */
@@ -479,6 +510,7 @@ export class Game {
     if (stopped) {
       this.say(`${k.name} was STOPPED. ${actor.name}'s turn continues.`, 'stop');
       this.pending = null;
+      this.checkOutOfCards(); // unless that card was their last one
       this.changed(`${k.name} stopped!`);
       return;
     }
@@ -580,6 +612,7 @@ export class Game {
     if (this.phase === PHASE.GAME_OVER) { this.changed(); return; }
     if (ends) { this.endTurn(); this.changed(); return; }
     this.phase = PHASE.TURN;
+    this.checkOutOfCards();
     this.changed();
   }
 

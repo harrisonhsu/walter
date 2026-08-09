@@ -61,7 +61,20 @@ export function credentialReport() {
   const seen = Object.keys(process.env)
     .filter((k) => /REDIS|KV_REST|UPSTASH/i.test(k))
     .sort();
-  return { using: creds ? creds.via : null, seen, problem: credentialProblem };
+  const report = { using: creds ? creds.via : null, seen, problem: credentialProblem };
+  if (creds) {
+    // The host is not a secret and identifies the database. The token's length
+    // is the giveaway for the commonest mistake of all: copying a masked or
+    // half-selected value. Upstash REST tokens are long.
+    report.host = safeHost(URL_BASE);
+    report.tokenLength = TOKEN.length;
+    if (TOKEN.length < 40) report.tokenLooksTruncated = true;
+  }
+  return report;
+}
+
+function safeHost(url) {
+  try { return new URL(url).host; } catch { return null; }
 }
 
 /** One round trip, so a deployment can prove the store works. */
@@ -96,7 +109,13 @@ async function call(path, body) {
   }
   const text = await res.text();
   if (res.status === 401 || res.status === 403) {
-    throw new Error('Redis rejected the token — check it was copied whole and matches this url.');
+    // Upstash says why in the body — read-only token, wrong database, expired.
+    // Passing it straight through beats any guess this code could make.
+    throw new Error(
+      `Redis rejected the token (${res.status}${text.trim() ? `: ${text.trim().slice(0, 160)}` : ''}). `
+      + 'The url and token must come from the same database, and the token must be the '
+      + 'full-access REST one, not the read-only variant.'
+    );
   }
   if (!res.ok) throw new Error(`Redis returned ${res.status}: ${text.slice(0, 200)}`);
   try {

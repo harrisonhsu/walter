@@ -19,20 +19,25 @@ let soloCfg = null;
 let session = null;
 let atTable = false;
 let myName = 'You';
+const soloWins = {}; // rounds won, by name, for as long as the tab is open
 
 // ------------------------------------------------------------------- solo
 
 function startSolo(cfg) {
   leaveOnline();
   soloCfg = cfg;
-  if (solo) solo.destroy();
+  if (solo) {
+    // Carry each player's record into the next game, as an online room does.
+    for (const p of solo.players) soloWins[p.name] = p.wins || 0;
+    solo.destroy();
+  }
 
   const names = [cfg.name];
-  const players = [{ name: cfg.name, isHuman: true }];
+  const players = [{ name: cfg.name, isHuman: true, wins: soloWins[cfg.name] || 0 }];
   while (players.length < cfg.players) {
     const n = botName(names);
     names.push(n);
-    players.push({ name: n });
+    players.push({ name: n, wins: soloWins[n] || 0 });
   }
 
   solo = new Game({ players, speed: SPEED[cfg.speedKey] || SPEED.normal });

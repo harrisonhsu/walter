@@ -193,6 +193,7 @@ function hydrateView(v, seat) {
   g.log = v.log;
   g.phase = v.phase;
   g.current = v.current;
+  g.firstPlayer = v.firstPlayer;
   g.pending = v.pending;
   g.reveal = v.reveal;
   g.flash = null;
@@ -203,6 +204,7 @@ function hydrateView(v, seat) {
     name: p.name,
     isHuman: p.isHuman,
     points: p.points,
+    wins: p.wins || 0,
     // Other hands are face down, but the engine only ever counts them.
     hand: p.hand || Array.from({ length: p.handCount }, (_, i) => ({
       uid: `hidden:${p.id}:${i}`, kind: 'hidden',

@@ -24,8 +24,16 @@ export default async function handler(req, res) {
   }
   try {
     await ping();
-    return json(res, 200, { ok: true, step: 'ready', using: report.using });
+    return json(res, 200, { ok: true, step: 'ready', using: report.using, host: report.host });
   } catch (err) {
-    return json(res, 502, { ok: false, step: 'redis', detail: err.message, using: report.using });
+    return json(res, 502, {
+      ok: false,
+      step: 'redis',
+      detail: err.message,
+      using: report.using,
+      host: report.host,
+      tokenLength: report.tokenLength,
+      tokenLooksTruncated: report.tokenLooksTruncated,
+    });
   }
 }
