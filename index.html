@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f3d1c">
+<meta name="description" content="A digital version of the Cactus card game — collect cacti, steal points, and STOP everybody else.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./css/styles.css">
+<title>Cactus — the card game</title>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ------------------------------------------------------- setup ---- -->
+  <section id="setup" class="screen screen--setup">
+    <div class="setup__inner">
+      <div id="setup-logo" class="setup__logo"></div>
+      <h1 class="setup__title">CACTUS</h1>
+      <p class="setup__sub">Collect cacti. Steal points. Say STOP a lot.</p>
+
+      <label class="field">
+        <span class="field__label">Your name</span>
+        <input id="name-input" class="field__input" type="text" value="You" maxlength="12" autocomplete="off">
+      </label>
+
+      <div class="field">
+        <span class="field__label">Who is playing</span>
+        <div class="segmented" id="mode" role="group" aria-label="Game type">
+          <button type="button" data-mode="online" class="is-on">With friends</button>
+          <button type="button" data-mode="solo">Just bots</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">Seats at the table</span>
+        <div class="segmented" id="player-count" role="group" aria-label="Number of players">
+          <button type="button" data-n="2">2</button>
+          <button type="button" data-n="3" class="is-on">3</button>
+          <button type="button" data-n="4">4</button>
+          <button type="button" data-n="5">5</button>
+          <button type="button" data-n="6">6</button>
+        </div>
+        <p class="field__hint" id="goal-hint">First to 10 points wins.</p>
+      </div>
+
+      <div class="field">
+        <span class="field__label">Bot speed</span>
+        <div class="segmented" id="speed" role="group" aria-label="Bot speed">
+          <button type="button" data-speed="fast">Fast</button>
+          <button type="button" data-speed="normal" class="is-on">Normal</button>
+          <button type="button" data-speed="slow">Slow</button>
+        </div>
+      </div>
+
+      <button id="start-btn" class="btn btn--primary btn--big">Open a room</button>
+
+      <div class="joinrow" id="joinrow">
+        <input id="code-input" class="field__input" type="text" placeholder="CODE"
+          maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
+          aria-label="Room code">
+        <button id="join-btn" class="btn btn--ghost">Join</button>
+      </div>
+
+      <p class="formerror hidden" id="setup-error"></p>
+      <button id="setup-rules-btn" class="btn btn--ghost">How to play</button>
+      <p class="credit">Based on the card game by Ryan Wallace. Fan-made, unofficial.</p>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- lobby ---- -->
+  <section id="lobby" class="screen screen--setup hidden">
+    <div class="setup__inner">
+      <p class="lobby__eyebrow" id="lobby-eyebrow">Room</p>
+      <h1 class="lobby__code" id="lobby-code">----</h1>
+      <p class="setup__sub" id="lobby-sub">Anyone who opens the link takes a seat.</p>
+
+      <button id="copy-btn" class="btn btn--ghost">Copy invite link</button>
+
+      <div class="field">
+        <span class="field__label">At the table</span>
+        <div class="seats" id="seats"></div>
+        <p class="field__hint" id="lobby-hint"></p>
+      </div>
+
+      <div class="field hidden" id="host-seats">
+        <span class="field__label">Seats — bots fill the rest</span>
+        <div class="segmented" id="lobby-count" role="group" aria-label="Number of seats">
+          <button type="button" data-n="2">2</button>
+          <button type="button" data-n="3">3</button>
+          <button type="button" data-n="4">4</button>
+          <button type="button" data-n="5">5</button>
+          <button type="button" data-n="6">6</button>
+        </div>
+      </div>
+
+      <div class="field hidden" id="host-speed">
+        <span class="field__label">Bot speed</span>
+        <div class="segmented" id="lobby-speed" role="group" aria-label="Bot speed">
+          <button type="button" data-speed="fast">Fast</button>
+          <button type="button" data-speed="normal">Normal</button>
+          <button type="button" data-speed="slow">Slow</button>
+        </div>
+      </div>
+
+      <button id="lobby-start" class="btn btn--primary btn--big hidden">Deal us in</button>
+      <p class="formerror hidden" id="lobby-error"></p>
+      <button id="lobby-leave" class="btn btn--ghost">Leave</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- table ---- -->
+  <section id="table" class="screen screen--table hidden">
+    <header class="topbar">
+      <button id="quit-btn" class="icon-btn" aria-label="New game">↺</button>
+      <div class="topbar__goal">
+        <span class="topbar__goal-num" id="goal-num">10</span>
+        <span class="topbar__goal-lbl">to win</span>
+      </div>
+      <span class="topbar__room hidden" id="room-tag"></span>
+      <button id="rules-btn" class="icon-btn" aria-label="Rules">?</button>
+    </header>
+
+    <div id="opponents" class="opponents"></div>
+
+    <div class="board">
+      <div class="piles">
+        <button class="pile pile--draw" id="pile-draw" disabled>
+          <div class="pile__art" id="draw-art"></div>
+          <span class="pile__count" id="draw-count">0</span>
+          <span class="pile__label">Draw</span>
+        </button>
+        <div class="pile pile--discard">
+          <div class="pile__art" id="discard-art"></div>
+          <span class="pile__label">Discard</span>
+        </div>
+        <div class="pile pile--points">
+          <div class="pile__art" id="point-art"></div>
+          <span class="pile__count" id="point-count">30</span>
+          <span class="pile__label">Points</span>
+        </div>
+      </div>
+      <ol class="log" id="log" aria-live="polite"></ol>
+    </div>
+
+    <div class="handzone">
+      <div class="prompt" id="prompt">Your turn.</div>
+      <div class="me">
+        <span class="me__name" id="me-name">You</span>
+        <span class="pips" id="me-pips"></span>
+      </div>
+      <div class="hand" id="hand"></div>
+      <div class="controls" id="controls"></div>
+    </div>
+  </section>
+
+  <div id="flash" class="flash" aria-live="assertive"></div>
+  <div id="modal" class="modal hidden"></div>
+
+  <!-- ------------------------------------------------------- rules ---- -->
+  <section id="rules" class="sheet hidden" aria-label="Rules">
+    <div class="sheet__bar">
+      <h2>How to play</h2>
+      <button id="rules-close" class="icon-btn" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet__body">
+      <h3>How to win</h3>
+      <p>First player to the point goal wins. 2–3 players: <b>10 points</b>. 4–5 players: <b>6 points</b>. 6 players: <b>5 points</b>.</p>
+
+      <h3>Setup</h3>
+      <p>Everyone is dealt 5 cards from the 90-card playing deck. The 30 point cards sit off to the side as the point pile. Play goes clockwise.</p>
+
+      <h3>During your turn</h3>
+      <p>Play as many <b>action cards</b> as you like — there is no limit, and you may also play none. Follow the instruction on each card as you play it.</p>
+
+      <h3>Ending your turn</h3>
+      <p>There are exactly two ways a turn ends:</p>
+      <ul>
+        <li><b>You earn a point.</b> Your turn ends immediately. You do not draw and you do not play anything else.</li>
+        <li><b>You draw a card.</b> If you are done playing and earned nothing, draw one card to end your turn. You cannot play it until next turn.</li>
+      </ul>
+      <p><b>FREE POINT</b>, <b>STEAL A POINT</b> and <b>DRAW 3</b> also end your turn once they resolve.</p>
+
+      <h3>Character cards</h3>
+      <p>Lay down a matching set of 3 to score:</p>
+      <ul>
+        <li>3 <b class="c-charlie">CHARLIES</b> = 1 point</li>
+        <li>3 <b class="c-spike">SPIKES</b> = 2 points</li>
+        <li>3 <b class="c-walter">WALTERS</b> = 3 points</li>
+        <li>3 <b class="c-wild">WILDS</b> = 3 points</li>
+      </ul>
+      <p>A <b>WILD</b> stands in for any character card. A set can never be STOPPED.</p>
+
+      <h3>Action cards</h3>
+      <dl class="rules-cards" id="rules-cards"></dl>
+
+      <h3>STOP</h3>
+      <p>Any player may play <b>STOP</b> at any time to cancel any action card. A STOP can be cancelled by another STOP, and so on — an odd number of STOPs kills the action, an even number lets it through. STOP cannot cancel a set of character cards.</p>
+      <p>If FREE POINT or STEAL A POINT is stopped, no point changes hands <i>and it is still that player's turn</i>.</p>
+
+      <h3>Playing with friends</h3>
+      <p>Open a room and send anyone the link. As they arrive they take a seat, and the host
+      can slide the seat count up or down at any point before the deal — <b>every seat nobody
+      claims is played by a bot</b>.</p>
+      <p>Turn up after the cards are out and you can take over a bot instead: you inherit its
+      hand, its points and its place in the order. If someone puts their phone down mid-game,
+      a bot covers their seat after 30 seconds so the table never stalls, and they get it
+      straight back when they return.</p>
+
+      <h3>Other rules</h3>
+      <ul>
+        <li>Starting your turn with zero cards? Draw 3 and end your turn immediately.</li>
+        <li>If the draw pile runs out, the discard pile is shuffled to make a new one.</li>
+        <li>Points are always visible to everyone.</li>
+      </ul>
+      <p class="credit">Original game designed by Ryan Wallace — thecactuscardgame.com. This is an unofficial fan implementation.</p>
+    </div>
+  </section>
+
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
